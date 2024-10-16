@@ -55,31 +55,26 @@ radiodns_resolve_target(radiodns_t *context)
 	free(context->target);
 	context->target = NULL;
 	strcpy(domain, context->domain);
-	for(;;)
-	{
 		h_errno = 0;
-		if(0 >= (len = res_query(domain, ns_c_in, ns_t_any, context->answer, RDNS_ANSWERBUFLEN)))
+	if(0 >= (len = res_query(domain, ns_c_in, ns_t_cname, context->answer, RDNS_ANSWERBUFLEN)))
 		{
 			if(NETDB_INTERNAL == h_errno)
 			{
 				return NULL;
 			}
-			break;
+		goto exit;
 		}
 		if(0 > ns_initparse(context->answer, len, &handle))
 		{
-			break;
+		goto exit;
 		}
 		if(0 > (len = ns_msg_count(handle, ns_s_an)))
 		{
-			break;
+		goto exit;
 		}
-		/* Resolvers tend towards the sane: the last result in a set of
-		 * DNAME and CNAME replies will be the one we care about. If
-		 * you're building against a resolver which for some reason
-		 * behaves differently, you'll need a workaround here.
-		 */
+	/* Based on experience, the first CNAME is the only one that matters. */
 		dnbuf[0] = 0;
+	printf("len: %d", len);
 		for(c = 0; c < len; c++)
 		{
 			if(ns_parserr(&handle, ns_s_an, c, &rr))
@@ -91,22 +86,16 @@ radiodns_resolve_target(radiodns_t *context)
 			{
 				continue;
 			}
-			if(ns_rr_type(rr) == ns_t_dname || ns_rr_type(rr) == ns_t_cname)
+		if(ns_rr_type(rr) == ns_t_cname)
 			{
 				dn_expand(ns_msg_base(handle), ns_msg_base(handle) + ns_msg_size(handle), ns_rr_rdata(rr), dnbuf, sizeof(dnbuf));
 			}
 		}      
 		if(dnbuf[0])
 		{
-			if(0 == strcmp(domain, dnbuf))
-			{
-				break;
-			}
 			strcpy(domain, dnbuf);
-			continue;
-		}
-		break;
 	}
+exit:
 	/* Whatever we found last is the target, unless we found nothing at all,
 	 * in which case the target is the same as the original domain.
 	 */
