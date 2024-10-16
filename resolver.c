@@ -145,7 +145,10 @@ radiodns_resolve_app(radiodns_t *context, const char *name, const char *protocol
 		return NULL;
 	}
 	sprintf(fqdn, "_%s._%s.%s", name, protocol, context->target);
-	if(0 >= (len = res_query(fqdn, ns_c_in, ns_t_any, context->answer, RDNS_ANSWERBUFLEN)))
+	/* Only query SRV. It is the only one that matters, and some servers
+	 * do not respond to ANY queries.
+	 */
+	if(0 >= (len = res_query(fqdn, ns_c_in, ns_t_srv, context->answer, RDNS_ANSWERBUFLEN)))
 	{
 		return NULL;
 	}	
