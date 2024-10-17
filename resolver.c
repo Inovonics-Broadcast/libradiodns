@@ -74,7 +74,6 @@ radiodns_resolve_target(radiodns_t *context)
 		}
 	/* Based on experience, the first CNAME is the only one that matters. */
 		dnbuf[0] = 0;
-	printf("len: %d", len);
 		for(c = 0; c < len; c++)
 		{
 			if(ns_parserr(&handle, ns_s_an, c, &rr))
